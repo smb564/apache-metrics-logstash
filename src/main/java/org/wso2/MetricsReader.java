@@ -4,8 +4,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.jmx.JmxReporter;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,21 +14,6 @@ public class MetricsReader {
     private static final MetricRegistry metricRegistry = new MetricRegistry();
     private static Timer timer;
     private static final JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
-
-
-    private static long[] parseJSON(String jsonString){
-        try {
-            JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
-            return new long[]{Long.parseLong(jsonObject.get("timestamp").toString().replace("\"", "")),
-                    Long.parseLong(jsonObject.get("response_time").toString().replace("\"", ""))};
-
-        }
-        catch (IllegalStateException ex){
-            System.out.println("Received an invalid JSON object");
-        }
-
-        return new long[]{-1, -1};
-    }
 
     public static void main(String[] args){
         timer = metricRegistry.timer("response_times",
@@ -43,9 +26,14 @@ public class MetricsReader {
                     new BufferedReader(new InputStreamReader(System.in))){
 
             String line = bufferedReader.readLine();
+            String[] temp;
             while(line != null) {
                 if (!line.isEmpty()){
-                    timer.update(parseJSON(line)[1], TimeUnit.MICROSECONDS);
+                    temp = line.split(" ");
+                    if (temp.length==3)
+                        timer.update(Long.parseLong(temp[2]), TimeUnit.MICROSECONDS);
+                    else
+                        System.out.println("Invalid log format");
                 }
                 line = bufferedReader.readLine();
             }
